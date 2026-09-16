@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>BREAK//LIMIT — Every loss is an evolution</title><link rel="stylesheet" href="style.css"></head>
+<body>
+  <header class="masthead"><a class="wordmark" href="./">BREAK<span>//</span>LIMIT</a><span class="build">PLAYABLE PROTOTYPE <i></i> 01</span><div class="header-actions"><button id="sound" aria-pressed="false">SOUND OFF</button><button id="effects" aria-pressed="false">REDUCED FX: OFF</button><button id="help">CONTROLS <span>?</span></button></div></header>
+  <main>
+    <section id="menu">
+      <div class="intro"><div><p class="eyebrow">01 / ENTER THE RIVALRY</p><h1>Defeat is an<br><em>evolution.</em></h1><p class="lede">The winner takes a point. The loser becomes a monster.<br>Choose your fighter. Push past your limit.</p></div><div class="match-rules"><div><b>03</b><span>POINTS TO WIN</span></div><div><b>02</b><span>RIVALS. NO LIMITS.</span></div><p>Lose → Evolve → Fully heal<br>Enemy at match point → Awaken<br>2–2 → The heavens fracture</p></div></div>
+      <div class="roster" role="group" aria-label="Select your fighter">
+        <button class="fighter-card selected" data-character="kairo" aria-pressed="true"><canvas id="portrait-kairo" width="600" height="360" aria-hidden="true"></canvas><div class="card-top"><span>01 / LIGHTNING</span><span class="selection">SELECTED ↗</span></div><div class="card-copy"><p>THE STORMBORN</p><h2>KAIRO</h2><span class="archetype">RUSH DOWN · FLASH · LIGHTNING SHIELD</span><p class="description">Close the distance. Become the storm.</p></div><span class="card-number">雷</span></button>
+        <button class="fighter-card vex" data-character="vex" aria-pressed="false"><canvas id="portrait-vex" width="600" height="360" aria-hidden="true"></canvas><div class="card-top"><span>02 / GRAVITY</span><span class="selection">SELECT ↗</span></div><div class="card-copy"><p>THE ABYSS</p><h2>VEX</h2><span class="archetype">SPACE CONTROL · PULL · CRUSH</span><p class="description">Draw them in. Bring everything down.</p></div><span class="card-number">空</span></button>
+      </div>
+      <div class="launch-row"><div class="mode"><label for="mode">MATCH TYPE</label><select id="mode"><option value="ai">Solo / versus AI</option><option value="local">Local / two players</option></select></div><div class="opponent">YOUR RIVAL <strong id="rival-name">VEX / THE ABYSS</strong></div><button id="preview" class="secondary">PREVIEW DUAL AWAKENING ↗</button><button id="start" class="primary">ENTER THE ARENA <span>→</span></button></div>
+      <footer><span>EVERY LOSS MAKES YOU STRONGER.</span><span>KEYBOARD + MOUSE · DESKTOP · LOCAL PLAY</span></footer>
+    </section>
+    <section id="game" hidden>
+      <div class="match-top"><span id="arena-label">THE SILENT TEMPLE</span><span id="match-kind">SOLO / FIRST TO THREE</span><div class="match-actions"><button id="match-help">CONTROLS</button><button id="fullscreen" hidden>FULL SCREEN</button><button id="pause">PAUSE <kbd>ESC</kbd></button></div></div>
+      <div class="arena-wrap"><canvas id="arena" width="1440" height="810" tabindex="0" aria-label="Fighting arena. Controls are listed below."></canvas>
+        <div class="hud"><div class="fighter-hud" id="hud0"></div><div class="round-center"><span>FIRST TO 3</span><strong id="score">0 <i>:</i> 0</strong><span id="round-label">ROUND 01</span></div><div class="fighter-hud right" id="hud1"></div></div>
+        <div id="announcement" aria-live="polite"><p></p><h2></h2><span></span></div>
+        <div id="pause-overlay" class="overlay" hidden><p class="eyebrow">TAKE A BREATH</p><h2>PAUSED</h2><button id="resume" class="primary">RESUME →</button><button id="quit" class="secondary">CHARACTER SELECT</button></div>
+        <div id="result" class="overlay" hidden><p class="eyebrow">RIVALRY SETTLED</p><h2 id="winner"></h2><p id="result-score"></p><button id="rematch" class="primary">RUN IT BACK →</button><button id="select" class="secondary">CHARACTER SELECT</button></div>
+        <section class="player-skills player-skills-left" aria-label="Player 1 skills"><p class="skill-owner" id="skill-owner0"></p><div class="skillbar" id="skillbar0"></div><p class="player-controls">A / D · MOVE &nbsp; SPACE · JUMP &nbsp; J / CLICK · COMBO &nbsp; Q · DASH &nbsp; F · GUARD</p></section>
+        <section class="player-skills player-skills-right" aria-label="Player 2 skills"><p class="skill-owner" id="skill-owner1"></p><div class="skillbar" id="skillbar1"></div><p class="player-controls" id="player2-controls"></p></section>
+      </div>
+      <div class="combat-footer"><span><kbd>A</kbd><kbd>D</kbd> MOVE <kbd>SPACE</kbd> JUMP <kbd>J</kbd> / CLICK COMBO <kbd>Q</kbd> DASH <kbd>F</kbd> GUARD</span><span id="round-note">Win the round. Survive the comeback.</span></div>
+    </section>
+  </main>
+  <dialog id="help-dialog"><button id="close-help" class="close" aria-label="Close controls">×</button><p class="eyebrow">FIELD MANUAL / BREAK//LIMIT</p><h2>Make every hit count.</h2><div class="control-columns"><div><h3>PLAYER ONE</h3><p>A / D — Move<br>W / Space — Jump<br>J / Left click — Basic combo<br>Q — Dash in last movement direction<br>1 · 2 · 3 — Attack / shield / slam<br>F (hold) — Guard<br>~ / backtick key — Ultimate at 100% energy</p></div><div><h3>PLAYER TWO · LOCAL</h3><p>← / → — Move<br>↑ — Jump<br>L — Basic combo<br>U — Dash in last movement direction<br>8 · 9 · 0 — Attack / shield / slam<br>K (hold) — Guard<br>- — Ultimate at 100% energy</p></div></div><p class="manual">Face your enemy to block. A fresh guard can parry. Use your shield (2 / 9): Kairo blocks and repels; Vex absorbs damage for a stored burst. Skills automatically aim at your opponent. Shield impacts freeze both fighters before a slow-motion clash; an equal or stronger shield throws the attacker down. A higher-form attacker breaks your defense and knocks you down, but the blocked attack deals no damage. Attacking builds ultimate energy; taking hits builds it faster. Both players have cooldown panels in their bottom corners. Each skill has 0.4 seconds of recovery after its animation. Thunderfall and Crush cannot be interrupted or knocked back during their animation, but still take damage. Restrained or knocked-down fighters cannot act until released.</p><p class="manual">First to 3 wins. After a round the winner heals 40% of missing health; the loser evolves, gains maximum health, and fully heals. Maximum HP per tier: 200 / 260 / 320 / 400. When your rival reaches 2 points, you awaken. At 2–2, enter the Fractured Heavens. Esc pauses. Reduced FX softens flashes and disables camera shake.</p></dialog>
+  <script type="module" src="src/main.js"></script>
+</body></html>
+
+
+
