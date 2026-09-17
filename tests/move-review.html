@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Combat timeline review</title><style>body{margin:0;background:#0a1420;color:#c7e9ef;font:13px Arial}canvas{width:100%;display:block}pre{margin:12px;white-space:pre-wrap}</style></head><body><canvas width="1440" height="810"></canvas><pre></pre><script type="module">
+import {Game,MAX_HEALTH,CHARACTERS,skillNames} from '../src/engine.js';import {Renderer} from '../src/render.js';
+const q=new URLSearchParams(location.search),character=q.get('character')==='vex'?'vex':'kairo',slot=Number(q.get('slot')||3),tier=Number(q.get('tier')||4),seconds=Number(q.get('time')||1.2);
+const renderer=new Renderer(document.querySelector('canvas'));renderer.reduced=true;
+const game=new Game({character,mode:'local',onEvent:e=>renderer.event(e)});game.phase='fight';game.domain=tier===4;
+game.fighters.forEach((f,i)=>{f.x=500+i*280;f.tier=tier;f.maxHp=MAX_HEALTH[tier-1];f.hp=f.maxHp;f.meter=100;});game.action(0,slot);
+if(q.has('defend')){const [f,t]=game.fighters;t.x=f.x+160;t.tier=Number(q.get('defend'));game.hit(t,f,25);}
+for(let i=0;i<Math.ceil(seconds*120);i++){
+  game.freeze=0;game.update(1/120);renderer.fx.forEach(e=>e.life-=(game.clash?.08:1)/120);renderer.fx=renderer.fx.filter(e=>e.life>0);renderer.particles=[];renderer.labels=[];
+  if(renderer.cinematic){renderer.cinematic.life-=(game.clash?.08:1)/120;if(renderer.cinematic.life<=0)renderer.cinematic=null;}
+}
+renderer.flash=0;renderer.render(game,0);document.querySelector('pre').textContent=JSON.stringify({move:skillNames(game.fighters[0])[slot],seconds,fighters:game.fighters.map(f=>({character:f.character,x:Math.round(f.x),y:Math.round(f.y),hp:Math.ceil(f.hp),armor:f.armor>0,captured:!!f.capture,down:f.down>0}))},null,2);
+</script></body></html>
