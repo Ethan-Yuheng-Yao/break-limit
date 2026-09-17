@@ -16,6 +16,7 @@ export const CHARACTERS = {
     awakenedHints: ['Black hole / violent ejection', '', 'Full dome / stored blast', 'Sky restraint / earth shatter', 'Singularity prison / supernova'] }
 };
 export const ACTIVE_SKILLS = [0,2,3,4];
+export function skillNames(f){const def=CHARACTERS[f.character];return f.tier===4?def.awakened:f.character==='kairo'&&f.tier===2?def.skills.map((name,i)=>i===4?'Tempest Execution':name):def.skills;}
 export const COOLDOWNS = [5.5, 0, 8.5, 10, 0];
 export const SKILL_RECOVERY = .4;
 export const MAX_HEALTH = Object.freeze([200, 260, 320, 400]);
@@ -24,7 +25,7 @@ export function fighter(id, character) {
     hp: MAX_HEALTH[0], maxHp: MAX_HEALTH[0], score: 0, tier: 1, meter: 0, cooldowns: [0,0,0,0,0],
     dashCd: 0, dash: 0, invuln: 0, stun: 0, lock: 0, armor:0, skillDelay:0, down:0, controlGrace:0, moveDir:id?-1:1,
     shield:null, shieldReaction:null, dashContact:null, clashDefeat:null, recoilAfterArmor:0, motion:null, capture:null, cast:null, guard: false, guardTime: 0,
-    attackTime: 0, pose: 'idle', animation:null, attackSerial:0, combo: 0, comboWindow: 0, aiClock: 0.6, lastSkill: -1 };
+    attackTime: 0, pose: 'idle', animation:null, attackSerial:0, shieldFlight:0, aiClock: 0.6, lastSkill: -1 };
 }
 // Kept separate from rendering so the comeback rules can be verified directly.
 export function resolveRound(fighters, winnerIndex) {
@@ -115,7 +116,7 @@ export class Game {
     this.endShieldReaction(f);
   }
   fling(f,dir){
-    this.knockDown(f,1);f.vx=dir*(650+f.tier*50);f.vy=-310;f.landDown=1;
+    this.knockDown(f,1);f.vx=dir*(1400+f.tier*150);f.vy=-410;f.landDown=1;f.shieldFlight=.8;
     this.animate(f,'tumble',.6);this.effect('shieldBurst',f,{radius:150+f.tier*30});
   }
   endShieldReaction(f){
@@ -188,16 +189,6 @@ export class Game {
       if(f.y<FLOOR-1)return false;
       f.vy=-660;this.animate(f,'jump',.4);this.effect('dust',f);return true;
     }
-    if(action==='attack'){
-      f.facing=t.x>=f.x?1:-1;f.attackSerial++;f.combo=f.comboWindow>0?(f.combo+1)%4:0;f.comboWindow=1.15;
-      f.lock=f.character==='kairo'?.42:.52;f.pose='attack';f.vx=f.facing*95;
-      this.animate(f,f.character+'-basic'+f.combo,f.lock);
-      const range=f.character==='kairo'?145:125;
-      this.strike(f,f.lock*.46,()=>{
-        f.vx=f.facing*(f.combo===3?280:160);this.effect('slash',f,{range});this.emit('sound',{kind:'swing'});
-        if(this.inRange(f,t,range))this.hit(f,t,(f.character==='kairo'?8:11)+(f.combo===3?5:0),{knock:f.combo===3?560:110,stun:f.combo===3?.45:.2,down:f.combo===3?.55:0});
-      });return true;
-    }
     const slot=Number(action);
     if(!ACTIVE_SKILLS.includes(slot)||f.cooldowns[slot]>0||f.skillDelay>0||slot===4&&f.meter<100)return false;
     f.facing=slot===0&&f.character==='kairo'?f.moveDir:t.x>=f.x?1:-1;
@@ -206,7 +197,7 @@ export class Game {
   finishRound(id) {
     if(this.phase!=='fight')return;
     this.clash=null;this.phase='roundEnd'; this.phaseTime=3.6; this.pending=[];this.projectiles=[];
-    for(const f of this.fighters){f.recoilAfterArmor=0;f.clashDefeat=null;f.capture=f.motion=f.cast=f.shield=f.shieldReaction=f.dashContact=null;f.armor=0;f.vx=f.vy=0;f.y=FLOOR;}
+    for(const f of this.fighters){f.shieldFlight=0;f.recoilAfterArmor=0;f.clashDefeat=null;f.capture=f.motion=f.cast=f.shield=f.shieldReaction=f.dashContact=null;f.armor=0;f.vx=f.vy=0;f.y=FLOOR;}
     const winner=this.fighters[id],loser=this.fighters[1-id];
     this.emit('roundEnd',{winner:id});
     // Defer healing until the knockout has had time to read visually.
@@ -217,7 +208,7 @@ export class Game {
     const result=resolveRound(this.fighters,this.roundWinner);
     if(result.matchOver){this.phase='matchEnd';this.emit('matchEnd',result);return;}
     this.round++;this.roundTime=90;this.domain=result.domain;
-    this.fighters.forEach(f=> {f.x=f.id?1040:400;f.y=FLOOR;f.vx=f.vy=f.stun=f.lock=f.armor=f.invuln=f.dash=f.down=f.skillDelay=f.controlGrace=0;f.recoilAfterArmor=0;f.clashDefeat=null;f.motion=f.capture=f.cast=f.shield=f.shieldReaction=f.dashContact=null;f.landDown=0;f.moveDir=f.id?-1:1;f.guard=false;f.guardTime=0;f.cooldowns=[0,0,0,0,0];f.dashCd=0;f.pose='idle';f.comboWindow=0;f.attackTime=0;f.meter=Math.min(100,f.meter+15);});
+    this.fighters.forEach(f=> {f.x=f.id?1040:400;f.y=FLOOR;f.vx=f.vy=f.stun=f.lock=f.armor=f.invuln=f.dash=f.down=f.skillDelay=f.controlGrace=0;f.recoilAfterArmor=0;f.clashDefeat=null;f.motion=f.capture=f.cast=f.shield=f.shieldReaction=f.dashContact=null;f.landDown=0;f.moveDir=f.id?-1:1;f.guard=false;f.guardTime=0;f.cooldowns=[0,0,0,0,0];f.dashCd=0;f.pose='idle';f.shieldFlight=0;f.attackTime=0;f.meter=Math.min(100,f.meter+15);});
     this.phase='intro';this.phaseTime=result.awakened.length?3.8:2.7;
     this.fighters.forEach(f=>{f.animation=null;f.attackSerial++;});
     result.awakened.forEach(id=>this.effect('transform',this.fighters[id]));
@@ -234,7 +225,7 @@ export class Game {
       f.aiClock=.23+r()*.4;
       if(t.attackTime>0&&dist<230&&r()<.5) { if(r()<.4)this.action(1,2);else f.aiGuard=.32; }
       else if(f.meter>=100&&r()<.7)this.action(1,4);
-      else if(dist<145&&r()<.53)this.action(1,'attack');
+      else if(dist<260&&r()<.53){const ready=[0,3].find(slot=>f.cooldowns[slot]===0);if(ready!==undefined)this.action(1,ready);}
       else if(dist>470&&r()<.4)this.action(1,'dash');
       else if(r()<.12)this.action(1,'jump');
       else {const options=[0,2,3];this.action(1,options[Math.floor(r()*options.length)]);}
@@ -259,7 +250,7 @@ export class Game {
       if(f.animation){f.animation.elapsed+=dt;if(f.animation.elapsed>=f.animation.duration)f.animation=null;}
       if(f.cast){f.cast.elapsed+=dt;if(f.cast.elapsed>=f.cast.duration)f.cast=null;}
       const wasDown=f.down;
-      for(const k of ['dashCd','dash','invuln','stun','lock','armor','down','skillDelay','controlGrace','attackTime','comboWindow'])f[k]=Math.max(0,f[k]-dt);
+      for(const k of ['dashCd','dash','invuln','stun','lock','armor','down','skillDelay','controlGrace','attackTime','shieldFlight'])f[k]=Math.max(0,f[k]-dt);
       if(wasDown>0&&f.down===0)f.controlGrace=.4;
       if(f.recoilAfterArmor&&f.armor<=0){const dir=f.recoilAfterArmor;f.recoilAfterArmor=0;this.fling(f,dir);}
       f.cooldowns=f.cooldowns.map(cd=>Math.max(0,cd-dt));
@@ -286,7 +277,7 @@ export class Game {
           if(f.attackTime===0)f.pose=f.guard?'guard':Math.abs(f.vx)>10?'run':'idle';
         }
         f.x=clamp(f.x+f.vx*dt,60,W-60);
-        if(f.dash===0&&(f.stun>0||f.lock>0))f.vx*=Math.exp(-5*dt);
+        if(f.dash===0&&(f.stun>0||f.lock>0))f.vx*=Math.exp(-(f.shieldFlight>0?1.2:5)*dt);
         f.vy+=1700*dt;f.y+=f.vy*dt;
         if(f.y>=FLOOR){f.y=FLOOR;f.vy=0;if(f.landDown){const duration=f.landDown;f.landDown=0;this.knockDown(f,duration);}}
       }

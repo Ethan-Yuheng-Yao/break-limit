@@ -1,11 +1,11 @@
-import { Game,CHARACTERS,COOLDOWNS,ACTIVE_SKILLS } from './engine.js';
+import { Game,CHARACTERS,COOLDOWNS,ACTIVE_SKILLS,skillNames } from './engine.js';
 import { Renderer,drawPortrait } from './render.js';
 import { Audio } from './audio.js';
 const $=s=>document.querySelector(s),canvas=$('#arena'),renderer=new Renderer(canvas),audio=new Audio();
 let selected='kairo',game=null,paused=false,last=0,announceTime=0,lastPreview=false;
 const keys=new Set(),announcement=$('#announcement');
 const skillKeys=[['1','','2','3','~'],['8','','9','0','-']];
-const bindings={KeyJ:[0,'attack'],KeyQ:[0,'dash'],Space:[0,'jump'],KeyW:[0,'jump'],Digit1:[0,0],Digit2:[0,2],Digit3:[0,3],Backquote:[0,4],KeyL:[1,'attack'],KeyU:[1,'dash'],ArrowUp:[1,'jump'],Digit8:[1,0],Digit9:[1,2],Digit0:[1,3],Minus:[1,4]};
+const bindings={KeyQ:[0,'dash'],Space:[0,'jump'],KeyW:[0,'jump'],Digit1:[0,0],Digit2:[0,2],Digit3:[0,3],Backquote:[0,4],KeyU:[1,'dash'],ArrowUp:[1,'jump'],Digit8:[1,0],Digit9:[1,2],Digit0:[1,3],Minus:[1,4]};
 function onEvent(e){
   renderer.event(e);
   if(e.type==='sound')audio.play(e.kind,e.tier);
@@ -33,13 +33,13 @@ function start(preview=false){
 function buildSkills(){
   for(const f of game.fighters){
     if(!$('#hud'+f.id+' .state-label')){const label=document.createElement('div');label.className='state-label';$('#hud'+f.id).append(label);}
-    const def=CHARACTERS[f.character],names=f.tier===4?def.awakened:def.skills,computer=f.id===1&&game.mode==='ai';
+    const def=CHARACTERS[f.character],names=skillNames(f),computer=f.id===1&&game.mode==='ai';
     const bar=$('#skillbar'+f.id);bar.parentElement.style.setProperty('--fighter-color',def.color);
     $('#skill-owner'+f.id).textContent=`PLAYER ${f.id+1}${computer?' / CPU':''} · ${def.name}`;
     const hints=f.tier===4?def.awakenedHints:def.hints;
     bar.innerHTML=ACTIVE_SKILLS.map(i=>`<button class="skill" data-player="${f.id}" data-slot="${i}" ${computer?'disabled':''} aria-label="Player ${f.id+1}: ${names[i]}${computer?', CPU':', key '+skillKeys[f.id][i]}"><kbd>${computer?'CPU':skillKeys[f.id][i]}</kbd><b>${names[i].toUpperCase()}</b><small>${hints[i]}</small><div class="cd"></div></button>`).join('');
   }
-  $('#player2-controls').textContent=game.mode==='ai'?'AI OPPONENT · LIVE ABILITIES & COOLDOWNS':'← / → · MOVE   ↑ · JUMP   L · COMBO   U · DASH   K · GUARD';
+  $('#player2-controls').textContent=game.mode==='ai'?'AI OPPONENT · LIVE ABILITIES & COOLDOWNS':'← / → · MOVE   ↑ · JUMP   U · DASH   K · GUARD';
   document.querySelectorAll('.skill').forEach(button=>button.addEventListener('click',()=>{const id=Number(button.dataset.player);if(!paused&&(id===0||game.mode==='local'))game.action(id,Number(button.dataset.slot));canvas.focus();}));
 }
 function updateHUD(){
@@ -76,7 +76,7 @@ function syncDirection(){if(!game)return;game.setMoveIntent(0,Number(keys.has('K
 window.addEventListener('keyup',e=>{keys.delete(e.code);syncDirection();});
 window.addEventListener('blur',()=>{keys.clear();if(game)pause(true);});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&game)pause(true);});
-canvas.addEventListener('pointerdown',e=>{if(e.button===0&&game&&!paused){canvas.focus();game.action(0,'attack');}});
+canvas.addEventListener('pointerdown',()=>canvas.focus());
 function frame(ms){
   const dt=Math.min((ms-last)/1000||0,.035);last=ms;
   if(game){if(!paused){game.update(dt,[{move:Number(keys.has('KeyD'))-Number(keys.has('KeyA')),guard:keys.has('KeyF')},{move:Number(keys.has('ArrowRight'))-Number(keys.has('ArrowLeft')),guard:keys.has('KeyK')}]);announceTime-=dt;if(announceTime<=0)announcement.classList.remove('show');renderer.render(game,dt);updateHUD();}}

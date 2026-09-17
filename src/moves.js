@@ -115,23 +115,34 @@ function crush(g,f,t){
 
 function kairoUltimate(g,f,t){
   const aw=f.tier===4,dir=f.facing,start=f.x,tx=clamp(t.x,180,g.width-180);
-  cast(g,f,4,aw?3.6:3.5,aw?'kairo-judgement':'kairo-storm-draw',true);f.meter=0;
-  g.emit('cinematic',{character:f.character,title:aw?'HEAVEN’S JUDGEMENT':'STORM SEVERANCE',duration:aw?3.6:3.5});
+  const first=f.tier===1,second=f.tier===2,duration=aw?3.6:first?2.65:3.5;
+  cast(g,f,4,duration,aw?'kairo-judgement':'kairo-storm-draw',true);f.meter=0;
+  g.emit('cinematic',{character:f.character,title:aw?'HEAVEN’S JUDGEMENT':second?'TEMPEST EXECUTION':'STORM SEVERANCE',duration});
   if(!aw){
     g.effect('skyCharge',f,{x:f.x,y:f.y-70,radius:100,duration:.65});
     g.strike(f,.65,()=>{g.aimDash(f,t,720,.26);g.effect('dashLine',f,{fromX:start,fromY:f.y-80,toX:t.x,toY:t.y-80});
       g.watchDash(f,t,()=>{
       const guarded=t.guard&&Math.sign(f.x-t.x)===t.facing;
-      if(guarded||!g.canControl(t)){g.hit(f,t,84,{knock:950,stun:.75,down:1});return;}
+      if(guarded||!g.canControl(t)){g.hit(f,t,first?74:second?92:84,{knock:950,stun:.75,down:1});return;}
       if(!g.hit(f,t,14,{knock:0,stun:.35})||g.phase!=='fight')return;
       const cx=clamp(t.x,160,g.width-160),side=Math.sign(t.x-f.x)||dir;
+      if(first){
+        if(!g.captureTarget(f,t,1.55,[point(.4,cx,400),point(.95,cx,400),point(1.35,cx,g.floor)],'storm-severance'))return;
+        f.facing=side;g.animate(f,'kairo-storm-rise',.65);
+        g.path(f,[point(.4,cx-side*95,405),point(.9,cx-side*95,360),point(1.35,cx-side*65,g.floor)],1.35);
+        g.strike(f,.4,()=>{if(!captured(g,f,t))return;g.effect('stormCrescent',f,{x:cx,y:400,radius:150,duration:.45});g.hit(f,t,12,{knock:0,unblockable:true});});
+        g.strike(f,.85,()=>{if(!captured(g,f,t))return;g.animate(f,'kairo-storm-finish',.65);g.effect('lightning',f,{x:cx,y:g.floor,radius:140});});
+        g.strike(f,1.35,()=>{if(!captured(g,f,t))return;endSlam(g,f,t,48,cx,240,1.1);g.animate(f,'kairo-storm-sheathe',.55);});
+        return;
+      }
       if(!g.captureTarget(f,t,2.35,[point(.5,cx,290),point(1.65,cx,290),point(2.1,cx,g.floor)],'storm-severance'))return;
       f.facing=side;g.animate(f,'kairo-storm-rise',.75);
       g.path(f,[point(.5,cx-side*100,340),point(.8,cx-side*100,340),point(1.2,cx+side*110,260),point(1.8,cx+side*110,220),point(2.1,cx+side*70,g.floor)],2.1);
       g.strike(f,.5,()=>{if(!captured(g,f,t))return;g.effect('stormCrescent',f,{x:cx,y:350,radius:220,duration:.55});g.hit(f,t,12,{knock:0,unblockable:true});});
       g.strike(f,1,()=>{if(!captured(g,f,t))return;f.facing=-side;g.animate(f,'kairo-storm-spin',.6);g.effect('stormCross',f,{x:cx,y:290,radius:260,duration:.7});g.hit(f,t,16,{knock:0,unblockable:true});});
+      if(second)g.strike(f,1.35,()=>{if(!captured(g,f,t))return;g.animate(f,'kairo-storm-spin',.45);g.effect('stormCross',f,{x:cx,y:235,radius:300,duration:.7});g.hit(f,t,8,{knock:0,unblockable:true});});
       g.strike(f,1.55,()=>{if(!captured(g,f,t))return;g.animate(f,'kairo-storm-finish',.9);g.effect('stormBlade',f,{x:cx,y:g.floor,radius:290,duration:.8});});
-      g.strike(f,2.1,()=>{if(!captured(g,f,t))return;g.effect('lightning',f,{x:cx,y:g.floor,radius:270});endSlam(g,f,t,42,cx,360,1.4);g.animate(f,'kairo-storm-sheathe',.65);});
+      g.strike(f,2.1,()=>{if(!captured(g,f,t))return;g.effect('lightning',f,{x:cx,y:g.floor,radius:270});if(second)for(const offset of [-160,160])g.effect('lightning',f,{x:cx+offset,y:g.floor,radius:150});endSlam(g,f,t,42,cx,360,1.4);g.animate(f,'kairo-storm-sheathe',.65);});
       });
     });
     return;
