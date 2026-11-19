@@ -1,0 +1,74 @@
+<!doctype html><meta charset="utf-8"><title>Match startup checks</title>
+<style>body{background:#101820;color:#e8faf4;font:16px system-ui}iframe{width:100%;height:720px;border:0}li{margin:8px}</style>
+<h1>Match startup checks</h1><button id="run">Run startup checks</button><ol id="results"></ol><iframe title="Game under test"></iframe>
+<script type="module">
+const frame=document.querySelector('iframe'),results=document.querySelector('#results');
+document.querySelector('#run').onclick=async()=>{
+ results.replaceChildren();
+ const report=(text)=>{const item=document.createElement('li');item.textContent=text;results.append(item);};
+ const html=await(await fetch('/index.html')).text();
+ const ready=new Promise(resolve=>window.addEventListener('message',function listen(e){if(e.source===frame.contentWindow&&e.data==='startup-ready'){window.removeEventListener('message',listen);resolve();}}));
+ frame.srcdoc=html.replace('<head>','<head><base href="/">').replace('<script type="module" src="src/main.js"></scr'+'ipt>',`<script type="module">
+ window.startupErrors=[];window.addEventListener('error',e=>startupErrors.push(e.message));
+ const testSave=new Map();Object.defineProperty(window,'localStorage',{value:{getItem:key=>testSave.get(key)??null,setItem:(key,value)=>testSave.set(key,String(value))}});
+ window.requestAnimationFrame=callback=>{window.nextFrame=callback;return 1;};
+ await import('/src/main.js');parent.postMessage('startup-ready','*');
+ </scr`+'ipt>');
+ await ready;
+ const w=frame.contentWindow,d=w.document,$=selector=>d.querySelector(selector);let now=0;
+ const check=(value,message)=>{if(!value)throw new Error(message);};
+ const yieldFrame=()=>new Promise(resolve=>{const channel=new MessageChannel();channel.port1.onmessage=()=>{channel.port1.close();channel.port2.close();resolve();};channel.port2.postMessage(0);});
+ const step=async(seconds)=>{for(let i=0;i<seconds*60;i++){const callback=w.nextFrame;w.nextFrame=null;check(callback,'Animation loop stopped');callback(now+=1000/60);if(i%8===0)await yieldFrame();}check(w.startupErrors.length===0,w.startupErrors.join('; '));};
+ const leave=()=>{$('#pause').click();$('#quit').click();$('#back-home').click();};
+ try{
+  $('[data-mode="ai"]').click();$('[data-character="vex"]').click();$('[data-seat="opponent"]').click();$('[data-character="kairo"]').click();$('[data-form="4"]').click();
+  check($('#form-health').textContent==='400 HP','Form preview did not update health');
+  $('#start').click();await step(.05);
+  check($('#hud0 strong').textContent==='VEX'&&$('#hud1 strong').textContent==='KAIRO','Selected matchup did not launch');
+  check($('#hud1 .tier').textContent.startsWith('I /'),'Form inspection changed the match starting phase');
+  report('PASS: independent hero / CPU choices launch in phase I after inspecting awakening');leave();
+  $('[data-mode="local"]').click();$('[data-seat="opponent"]').click();$('[data-character="ronin"]').click();
+  check($('#start').disabled,'Locked Player 2 could start a match');
+  check(!$('#unlock-panel').hidden,'Unlock instructions are missing');
+  $('#unlock-route').click();
+  check($('#menu').dataset.mode==='campaign'&&$('#route-title').textContent==='The Broken Oath','Unlock link did not select the fighter campaign');
+  $('[data-challenger="vex"]').click();
+  check($('#route-title').textContent==='The Broken Oath'&&$('#campaign-fighter').value==='vex','Challenger choice changed campaign route');
+  check($('#campaign-map').querySelectorAll('li').length===9,'Campaign route map is missing stages');
+  check($('#campaign-fighter-cards').querySelectorAll('button').length===2,'Locked fighters appeared as challengers');
+  $('#start').click();await step(.05);
+  check($('#hud0 strong').textContent==='VEX'&&$('#match-kind').textContent==='THE BROKEN OATH','Campaign did not launch with selected challenger');
+  report('PASS: locked Player 2 links to the correct route, with a separate owned challenger');leave();
+  $('[data-mode="local"]').click();$('[data-character="kairo"]').click();$('[data-seat="opponent"]').click();$('[data-character="vex"]').click();$('#back-home').click();
+  for(const mode of ['ai','local','campaign','local','ai']){
+   $('[data-mode="'+mode+'"]').click();$('#start').click();
+   check(!$('#game').hidden&&$('#menu').hidden,mode+': Start did not open the arena');await step(2.55);
+   check($('#announcement h2').textContent==='FIGHT',mode+': opening round did not advance');
+   check($('#pause-overlay').hidden,mode+': match started paused');
+   check($('#skillbar0').children.length===4,mode+': Player 1 skills missing');
+   if(mode!=='campaign'){
+    check(!$('#hud1').hidden,mode+': rival HUD missing');
+    check($('#skillbar1').children.length===4,mode+': rival skills missing');
+    check([...$('#skillbar1').children].every(b=>b.disabled===(mode==='ai')),mode+': rival controls incorrect');
+   }
+   $('#skillbar0 [data-slot="2"]').click();await step(.1);
+   check($('#skillbar0 [data-slot="2"]').classList.contains('locked'),mode+': player skill did not activate');
+   await step(1);report('PASS: '+mode+' starts, advances, and accepts a skill');leave();
+  }
+  $('[data-mode="local"]').click();$('#preview').click();await step(4);
+  check($('#hud0 .tier').textContent.includes('AWAKENED'),'Awakening preview failed');
+  report('PASS: awakening preview starts');leave();
+  $('[data-mode="campaign"]').click();$('[data-character="ronin"]').click();
+  const saved=w.localStorage.getItem('break-limit.campaign.v1');$('#preview').click();await step(2.7);
+  check($('#hud0 strong').textContent==='RONIN','Ronin trial selected the wrong fighter');
+  check($('#skillbar0 [data-slot="0"] b').textContent==='WORLD SPLITTER','Ronin abilities missing');
+  $('#skillbar0 [data-slot="3"]').click();await step(3);
+  check(w.localStorage.getItem('break-limit.campaign.v1')===saved,'Trial changed campaign progression');
+  report('PASS: locked Ronin can be tried with working sword skills without altering unlocks');leave();
+  $('[data-mode="campaign"]').click();$('[data-character="ronin"]').click();$('#start').click();await step(2.6);
+  check($('#match-kind').textContent==='THE BROKEN OATH','Ronin route failed');
+  check($('#hud0 strong').textContent==='VEX','Campaign lost the chosen owned fighter');
+  report('PASS: Ronin campaign starts with an owned fighter');leave();report('ALL STARTUP CHECKS PASSED');
+ }catch(error){report('FAIL: '+error.message);}
+};
+</script>

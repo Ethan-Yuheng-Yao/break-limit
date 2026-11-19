@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><title>Graphics regression review</title>
+<style>body{margin:0;background:#101a27;color:#d9f2ee;font:14px system-ui}nav{padding:15px;display:flex;gap:16px;align-items:center}select,button{padding:8px}canvas{display:block;width:100%}output{display:block;padding:15px}</style>
+<nav><label>Form <select id="tier"><option>1</option><option>2</option><option>3</option><option>4</option></select></label><label>Facing <select id="facing"><option value="1">Right</option><option value="-1">Left</option></select></label><button id="next">Next attack frame</button><span>Idle · attack · guard / actual fighter and effect artwork</span></nav>
+<canvas width="1440" height="870"></canvas><output></output>
+<script type="module">
+import {Game,CHARACTERS} from '../src/engine.js';import {drawFighter,Renderer} from '../src/render.js';
+const canvas=document.querySelector('canvas'),c=canvas.getContext('2d'),renderer=new Renderer(canvas);let elapsed=.17;
+function draw(){
+ c.fillStyle='#101a27';c.fillRect(0,0,1440,870);const tier=Number(document.querySelector('#tier').value),facing=Number(document.querySelector('#facing').value);
+ Object.keys(CHARACTERS).forEach((character,col)=>{
+  c.fillStyle=CHARACTERS[character].color;c.font='bold 22px Arial';c.textAlign='center';c.fillText(character.toUpperCase(),col*360+180,30);
+  for(let row=0;row<3;row++){
+   const effects=[],g=new Game({character,mode:'local',onEvent:e=>{if(e.type==='effect')effects.push({...e,at:g?.time||0});}});g.phase='fight';
+   const [f,t]=g.fighters;Object.assign(f,{x:720-facing*65,tier,meter:100,hp:10000,maxHp:10000});Object.assign(t,{x:720,y:644,hp:10000,maxHp:10000,armor:10});f.facing=facing;
+   if(row)g.action(0,row===1?0:2);
+   const time=row===1?elapsed:row===2?.24:0;
+   for(let i=0;i<time*120;i++){g.freeze=0;g.update(1/120);}
+   c.save();c.beginPath();c.rect(col*360,row*280+38,360,275);c.clip();c.translate(col*360+180,row*280+275);c.scale(1.3,1.3);c.translate(-f.x,-f.y);
+   drawFighter(c,f,.35);if(row===1)for(const e of effects.filter(e=>['comboStrike','steelCut','solarBeam'].includes(e.kind))){const age=g.time-e.at,max=e.duration||.4;if(age<max)renderer.drawEffect({...e,max,life:max-age},g.time);}
+   c.restore();c.fillStyle='#98adbc';c.font='12px Arial';c.fillText(['IDLE','QUICK ATTACK','SHIELD'][row],col*360+180,row*280+302);
+  }
+ });document.querySelector('output').textContent=`Form ${tier} · Facing ${facing>0?'right':'left'} · Attack sample ${elapsed.toFixed(2)} seconds`;
+}
+document.querySelectorAll('select').forEach(el=>el.onchange=draw);document.querySelector('#next').onclick=()=>{elapsed=elapsed>=.45?.09:elapsed+.08;draw();};draw();
+</script>

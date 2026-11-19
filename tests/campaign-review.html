@@ -1,0 +1,10 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Campaign battle review</title><link rel="stylesheet" href="../style.css"><style>body{margin:0;background:#0a1420;color:#c7e9ef;font:13px Arial}canvas{width:100%;display:block}pre{margin:12px;white-space:pre-wrap}#hud1{position:absolute;top:25px;right:4%;width:44%}canvas{height:auto}</style></head><body class="campaign-playing"><canvas width="1440" height="810"></canvas><div id="hud1" class="fighter-hud right"></div><pre></pre><script type="module">
+import {updateBossHUD} from '../src/campaign-ui.js';
+import {CampaignGame,CAMPAIGNS} from '../src/campaign.js';import {Renderer} from '../src/render.js';
+const q=new URLSearchParams(location.search),character=Object.hasOwn(CAMPAIGNS,q.get('character'))?q.get('character'):'nyra',stage=Math.max(0,Math.min(8,Number(q.get('stage')||7))),seconds=Number(q.get('time')||.8);
+const renderer=new Renderer(document.querySelector('canvas'));renderer.reduced=true;
+const game=new CampaignGame({character:q.get('hero')||'kairo',campaign:character,stage,onEvent:e=>renderer.event(e),random:()=>.5});game.phase='fight';game.fighters[0].meter=100;if(q.has('slot'))game.action(0,Number(q.get('slot')));
+for(let i=0;i<Math.ceil(seconds*120);i++){game.freeze=0;game.update(1/120);renderer.render(game,1/120);}renderer.flash=0;renderer.render(game,0);
+updateBossHUD(document.querySelector('#hud1'),game);
+document.querySelector('pre').textContent=JSON.stringify({stage:game.stage.title,boss:game.stage.boss,phase:game.phase,fighters:game.fighters.map(f=>({name:f.name||f.character,tier:f.tier,hp:Math.ceil(f.hp)}))},null,2);
+</script></body></html>

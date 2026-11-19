@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><title>Movement review</title>
+<style>body{margin:0;background:#101820;color:#e8faf4;font:15px system-ui}nav{padding:12px;display:flex;gap:12px;align-items:center}button,select{padding:8px}canvas{width:100%;display:block}output{padding:12px;display:block}</style>
+<nav><label>Scene <select id="scene"><option value="crowd">Campaign movement</option><option value="jump">Jump over a pulse</option><option value="combo">Attack → jump → dash → skill</option></select></label><button id="reset">Reset</button><button id="step">Step 0.15s</button><button id="play">Play</button></nav>
+<canvas width="1440" height="810"></canvas><output></output>
+<script type="module">
+import {Game} from '../src/engine.js';import {CampaignGame} from '../src/campaign.js';import {Renderer} from '../src/render.js';
+const scene=document.querySelector('select'),canvas=document.querySelector('canvas'),output=document.querySelector('output');
+let renderer,game,time=0,playing=false,actions=[];
+function reset(){
+ renderer=new Renderer(canvas);renderer.reduced=true;time=0;actions=[];
+ const options={mode:'local',onEvent:e=>renderer.event(e),random:()=>.5};
+ game=scene.value==='crowd'?new CampaignGame({...options,campaign:'nyra',stage:7}):new Game(options);game.phase='fight';
+ game.fighters.forEach(f=>f.hp=f.maxHp=10000);game.fighters[0].meter=100;
+ if(scene.value!=='crowd'){
+  game.fighters[0].x=500;game.fighters[1].x=615;
+  if(scene.value==='jump'){game.fighters[1].enemyType='vex-2';game.fighters[1].name='Gravity Sentinel';game.action(1,'pulse');actions=[[.38,'jump']];}
+  else{game.action(0,0);actions=[[.2,'jump'],[.36,'dash'],[.5,3]];}
+ }
+ draw(0);
+}
+function draw(dt){renderer.render(game,dt);output.textContent=`${time.toFixed(2)}s · Player height ${Math.round(game.floor-game.fighters[0].y)} · HP ${Math.round(game.fighters[0].hp)} · ${game.fighters[0].cast?'Casting skill '+game.fighters[0].cast.slot:game.fighters[0].dash?'Air dash':game.fighters[0].y<game.floor?'Airborne':'Grounded'}`;}
+function advance(seconds){for(let i=0;i<Math.ceil(seconds*120);i++){time+=1/120;while(actions.length&&time>=actions[0][0])game.inputAction(0,actions.shift()[1]);game.freeze=0;game.update(1/120,scene.value==='crowd'?[{move:Math.sin(time*.7)*.6}]:[]);draw(1/120);}}
+document.querySelector('#reset').onclick=reset;scene.onchange=reset;document.querySelector('#step').onclick=()=>advance(.15);document.querySelector('#play').onclick=()=>{playing=!playing;document.querySelector('#play').textContent=playing?'Pause':'Play';};
+let previous=performance.now();function frame(now){if(playing)advance(Math.min(.035,(now-previous)/1000));previous=now;requestAnimationFrame(frame);}reset();requestAnimationFrame(frame);
+</script>

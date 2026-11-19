@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><title>Campaign exit and healing review</title>
+<style>body{margin:0;background:#101a27;color:#d9f2ee;font:14px system-ui}nav{padding:15px;display:flex;gap:15px}button{padding:10px}canvas{width:100%;max-height:72vh;object-fit:contain}output{display:block;padding:15px;font-size:18px}</style>
+<nav><button id="clear">Defeat enemies · inspect exit</button><button id="walk">Walk through gate</button><button id="next">Continue to next level</button><button id="reset">Reset review</button></nav><canvas width="1440" height="810"></canvas><output></output>
+<script type="module">
+import {CampaignGame} from '../src/campaign.js';import {Renderer} from '../src/render.js';
+const renderer=new Renderer(document.querySelector('canvas'));renderer.reduced=true;let game,checkpoints;
+function draw(){renderer.flash=0;renderer.render(game,0);const f=game.fighters[0];document.querySelector('output').textContent=`Level ${game.stageIndex+1} · ${game.phase} · Health ${Math.ceil(f.hp)} / ${f.maxHp} · Exit ${game.exitOpen?'open':'locked'} · Saved level ${checkpoints}`;}
+function tick(seconds,move=0){for(let i=0;i<seconds*120;i++){game.freeze=0;game.update(1/120,[{move}]);}draw();}
+function reset(){checkpoints=1;game=new CampaignGame({onEvent:e=>{if(e.type==='campaignProgress')checkpoints=e.nextStage+1;},random:()=>.5});game.phase='fight';game.fighters[0].hp=47;draw();}
+document.querySelector('#reset').onclick=reset;
+document.querySelector('#clear').onclick=()=>{const f=game.fighters[0];for(const enemy of game.fighters.slice(1))game.hit(f,enemy,10000);f.x=game.exitX-260;f.y=game.groundAt(f.x);game.cameraX=game.width-1440;draw();};
+document.querySelector('#walk').onclick=()=>tick(.8,1);
+document.querySelector('#next').onclick=()=>tick(2.7);reset();
+</script>

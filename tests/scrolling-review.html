@@ -1,0 +1,16 @@
+<!doctype html><meta charset="utf-8"><title>Scrolling campaign review</title>
+<style>body{margin:0;background:#081321;color:#d8eafa;font:14px Arial}nav{padding:12px;display:flex;gap:12px;align-items:center}button,select{padding:8px}canvas{display:block;width:100%;max-height:75vh;object-fit:contain}output{display:block;padding:12px}</style>
+<nav><select id="theme" aria-label="Theme"><option value="kairo">Storm ruins</option><option value="vex">Void tomb</option><option value="nyra">Ash fields</option><option value="ronin">Field of blades</option></select><button id="reset">Reset</button><button id="walk">Walk right</button><button id="jump">Jump onto platform</button><button id="travel">Travel to hills</button><button id="wait">Wait</button></nav>
+<canvas width="1440" height="810"></canvas><output></output>
+<script type="module">
+import {CampaignGame} from '../src/campaign.js';import {Renderer} from '../src/render.js';
+const renderer=new Renderer(document.querySelector('canvas'));renderer.reduced=true;let game;
+function draw(){renderer.flash=0;renderer.render(game,0);document.querySelector('output').textContent=`Position ${Math.round(game.fighters[0].x)} / ${game.width} · Camera ${Math.round(game.cameraX)} · Enemies: ${game.fighters.slice(1).map(f=>f.awake?'alert':'idle').join(', ')}`;}
+function step(seconds,move=0){for(let i=0;i<seconds*120;i++){game.freeze=0;game.update(1/120,[{move}]);renderer.render(game,1/120);}draw();}
+function reset(){game=new CampaignGame({campaign:document.querySelector('select').value,stage:7,onEvent:e=>renderer.event(e),random:()=>.5});game.phase='fight';game.fighters[0].hp=10000;draw();}
+document.querySelector('#reset').onclick=reset;document.querySelector('select').onchange=reset;
+document.querySelector('#walk').onclick=()=>step(1.2,1);
+document.querySelector('#jump').onclick=()=>{const f=game.fighters[0];Object.assign(f,{x:800,y:644,vy:0});game.action(0,'jump');step(.9);};
+document.querySelector('#travel').onclick=()=>{const f=game.fighters[0];Object.assign(f,{x:2100,y:game.groundAt(2100),vy:0});step(.5);};
+document.querySelector('#wait').onclick=()=>step(2);reset();
+</script>

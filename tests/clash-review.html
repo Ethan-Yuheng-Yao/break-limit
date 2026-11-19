@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf-8"><title>Clash choreography review</title>
+<style>body{margin:0;background:#0b1721;color:#d5f7f3;font:14px Arial}header{padding:15px}button,select{padding:9px;margin:4px;background:#b5f5ea;color:#10232b;border:0}canvas{width:100%;display:block}#status{padding:8px}</style>
+<header><select id="scene" aria-label="Clash scenario"><option value="0">Storm Severance vs Crush</option><option value="1">Tempest Execution vs Void Bastion</option><option value="2">Worldfall vs Thunder God</option><option value="3">Thunderfall vs Crush</option><option value="4">Tempest Execution vs Phoenix Dive</option><option value="5">Thunderfall vs Thunderfall</option><option value="6">Emberfall vs Thunderfall</option></select><button id="restart">Restart</button><button id="beat">Next impact</button><button id="step">Step 0.1s</button><button id="play">Play</button><span id="status"></span></header>
+<canvas width="1440" height="810"></canvas>
+<script type="module">
+import {Game} from '../src/engine.js';import {Renderer} from '../src/render.js';
+const canvas=document.querySelector('canvas'),status=document.querySelector('#status'),scene=document.querySelector('#scene');let g,r,playing=false,last=0;
+const scenes=[['kairo',1,4,'vex',1,3],['kairo',2,4,'vex',2,2],['nyra',4,4,'kairo',4,3],['kairo',1,3,'vex',1,3],['kairo',2,4,'nyra',2,3],['kairo',1,3,'kairo',1,3],['nyra',1,4,'kairo',1,3]];
+function step(dt=1/120){g.freeze=0;g.update(dt);r.render(g,dt);status.textContent=g.clash?'Impact '+g.clash.beatIndex+' / '+g.clash.sequence.beats.length+' · '+g.clash.attack.name+' · '+g.clash.defense.name:'Returning to battle';}
+function restart(){
+ playing=false;document.querySelector('#play').textContent='Play';r=new Renderer(canvas);const [a,at,slot,d,dt,def]=scenes[scene.value];
+ g=new Game({character:a,opponent:d,mode:'local',onEvent:e=>r.event(e)});g.phase='fight';g.fighters.forEach((f,i)=>Object.assign(f,{x:400+i*300,tier:i?dt:at,meter:100,hp:10000,maxHp:10000}));
+ if(def===2){g.action(1,2);g.action(0,slot);for(let i=0;i<180&&!g.clash;i++)step();}else{g.action(0,slot);for(let i=0;i<18;i++)step();g.action(1,def);}step();
+}
+scene.onchange=restart;document.querySelector('#restart').onclick=restart;
+document.querySelector('#beat').onclick=()=>{playing=false;document.querySelector('#play').textContent='Play';const index=g.clash?.beatIndex;for(let i=0;i<600&&g.clash?.beatIndex===index;i++)step();r.render(g,0);};
+document.querySelector('#step').onclick=()=>{playing=false;document.querySelector('#play').textContent='Play';for(let i=0;i<12;i++)step();};
+document.querySelector('#play').onclick=()=>{playing=!playing;document.querySelector('#play').textContent=playing?'Pause':'Play';};
+function frame(ms){const dt=Math.min(.035,(ms-last)/1000||0);last=ms;if(playing)step(dt);requestAnimationFrame(frame);}restart();requestAnimationFrame(frame);
+</script>

@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><title>Phase identity review</title>
+<style>body{margin:0;background:#09141d;color:#d5f7f3;font:14px system-ui}nav{padding:12px;display:flex;gap:12px;align-items:center}select,button{padding:8px;background:#d4f7ed;color:#10242b;border:0}main{display:grid;grid-template-columns:1fr 1fr;gap:8px}section{background:#132330}h2{font-size:16px;margin:10px}canvas{width:100%;display:block}output{padding:10px}</style>
+<nav><label>Character <select id="character"><option value="kairo">Kairo</option><option value="vex">Vex</option><option value="nyra">Nyra</option><option value="ronin">Ronin</option></select></label><label>Skill <select id="slot"><option value="3">Special</option><option value="4">Ultimate</option><option value="0">Quick attack</option><option value="2">Shield</option></select></label><label>Use <select id="mode"><option value="attack">Attack</option><option value="defense">Defense</option></select></label><button id="reset">Reset</button><button id="step">Step 0.15s</button><button id="impact">Next impact</button><button id="play">Play</button></nav><main></main><output></output>
+<script type="module">
+import {Game,skillNames} from '../src/engine.js';import {Renderer} from '../src/render.js';
+const character=document.querySelector('#character'),slot=document.querySelector('#slot'),mode=document.querySelector('#mode'),main=document.querySelector('main');let scenes=[],playing=false;
+function draw(s,dt){s.renderer.flash=0;s.renderer.render(s.game,dt);}
+function step(s){s.game.freeze=0;s.game.update(1/120);draw(s,1/120);}
+function reset(){playing=false;document.querySelector('#play').textContent='Play';main.replaceChildren();scenes=[];
+ for(let tier=1;tier<=4;tier++){
+  const section=document.createElement('section'),heading=document.createElement('h2'),canvas=document.createElement('canvas');canvas.width=1440;canvas.height=810;section.append(heading,canvas);main.append(section);
+  const renderer=new Renderer(canvas);renderer.reduced=true;const state={renderer,hits:0};const game=new Game({character:character.value,opponent:'nyra',mode:'local',onEvent:e=>{renderer.event(e);if(e.type==='damage'||e.type==='specialCollision')state.hits++;}});state.game=game;game.phase='fight';game.fighters.forEach((f,i)=>Object.assign(f,{x:500+i*250,tier,hp:10000,maxHp:10000,meter:100}));
+  heading.textContent='PHASE '+tier+' · '+skillNames(game.fighters[0])[Number(slot.value)];
+  if(mode.value==='defense'&&Number(slot.value)>=3){game.action(1,4);for(let i=0;i<18;i++)step(state);}
+  game.action(0,Number(slot.value));draw(state,0);scenes.push(state);
+ }
+ status();
+}
+function status(){document.querySelector('output').textContent=scenes.map((s,i)=>'Phase '+(i+1)+': '+s.hits+' impacts').join(' · ');}
+for(const input of [character,slot,mode])input.onchange=reset;document.querySelector('#reset').onclick=reset;
+document.querySelector('#step').onclick=()=>{for(const s of scenes)for(let i=0;i<18;i++)step(s);status();};
+document.querySelector('#impact').onclick=()=>{for(const s of scenes){const hits=s.hits;for(let i=0;i<500&&s.hits===hits;i++)step(s);}status();};
+document.querySelector('#play').onclick=()=>{playing=!playing;document.querySelector('#play').textContent=playing?'Pause':'Play';};
+let last=0;function frame(now){if(playing){const n=Math.min(4,Math.ceil((now-last)/1000*120));for(const s of scenes)for(let i=0;i<n;i++)step(s);status();}last=now;requestAnimationFrame(frame);}reset();requestAnimationFrame(frame);
+</script>
